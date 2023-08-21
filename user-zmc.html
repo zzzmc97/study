@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>项目实战</title>
+		<link rel="stylesheet" href="css/project_demo.css" />
+		<link rel="stylesheet" href="plugins/elementui/index.css">
+		<link rel="stylesheet" href="plugins/font-awesome/css/font-awesome.min.css">
+		<link rel="stylesheet" href="css/style.css">
+		<style>
+			.set-other-btn {
+				color: #ffffff;
+				background-color: #065aba;
+				border-color: #065aba;
+			}
+
+			.set-other-btn:hover {
+				background-color: #55ffff;
+				border-color: #00ffff;
+			}
+
+			.set-other-btn:focus {
+				background-color: #55ffff;
+				border-color: #00ffff;
+			}
+		</style>
+	</head>
+	<body>
+		<script src="./js/vue.js"></script>
+		<script src="./js/index.js"></script>
+		<div id="app">
+			<!-- 用户添加弹窗-->
+			<div>
+				<el-dialog title="新增用户" :visible.sync="dialogFormVisible">
+					<el-form ref="AddUserForm" :model="userForm" :rules="rules">
+						<el-row>
+							<el-col :span="12">
+								<el-form-item label="用户中文名" prop="userName">
+									<el-input v-model="userForm.userName" />
+								</el-form-item>
+							</el-col>
+							<el-col :span="12">
+								<el-form-item label="英文名" prop="enName">
+									<el-input v-model="userForm.enName" />
+								</el-form-item>
+							</el-col>
+						</el-row>
+						<el-row>
+							<el-col :span="12">
+								<el-form-item label="年龄" prop="age">
+									<el-input-number :min="0" :max="120" v-model="userForm.age" />
+								</el-form-item>
+							</el-col>
+							<el-col :span="12">
+								<el-form-item label="联系电话" prop="phone">
+									<el-input v-model="userForm.phone" />
+								</el-form-item>
+							</el-col>
+						</el-row>
+						<el-row>
+							<el-col :span="24">
+								<el-form-item label="地址" prop="address">
+									<el-input v-model="userForm.address"></el-input>
+							</el-col>
+
+						</el-row>
+					</el-form>
+					<div slot="footer" class="dialog-footer">
+						<el-button @click="dialogFormVisible = false">取 消</el-button>
+						<el-button type="primary" @click="AddsubmitForm('AddUserForm')">确 定</el-button>
+					</div>
+				</el-dialog>
+			</div>
+			<!--更新弹窗-->
+			<div>
+				<el-dialog :visible.sync="assignRolesDialogVisible" title="编辑用户">
+					<el-form ref="editUserForm" :model="editUser" label-position="top" :rules="rules">
+						<el-row>
+
+							<el-col :span="12">
+								<el-form-item label="用户中文名" prop="userName">
+									<el-input v-model="editUser.userName" />
+								</el-form-item>
+							</el-col>
+							<el-col :span="12">
+								<el-form-item label="英文名" prop="enName">
+									<el-input v-model="editUser.enName" />
+								</el-form-item>
+							</el-col>
+						</el-row>
+						<el-row>
+							<el-col :span="12">
+								<el-form-item label="年龄" prop="age">
+									<el-input-number :min="0" :max="120" v-model="editUser.age" />
+								</el-form-item>
+							</el-col>
+							<el-col :span="12">
+								<el-form-item label="联系电话" prop="phone">
+									<el-input v-model="editUser.phone" />
+								</el-form-item>
+							</el-col>
+						</el-row>
+						<el-row>
+							<el-col :span="24">
+								<el-form-item label="地址" prop="address">
+									<el-input v-model="editUser.address"></el-input>
+							</el-col>
+						</el-row>
+					</el-form>
+					<div slot="footer" class="dialog-footer">
+						<el-button @click="assignRolesDialogVisible = false">取消</el-button>
+						<el-button type="primary" @click="submitEditForm('editUserForm')">提交</el-button>
+					</div>
+				</el-dialog>
+			</div>
+			<!-- 用户授权窗口 -->
+			<div>
+				<el-dialog title="用户授权" :visible.sync="dialogFormVisibleRoleManager" width="50%" @close="resetTransfer">
+					<el-checkbox-group v-model="userRoleList">
+						<el-checkbox v-for="role in roleNames" :label="role.roleName" :key="role.roleId"
+							:value="role.roleId">{{ role.roleName }}</el-checkbox>
+					</el-checkbox-group>
+					<span slot="footer" class="dialog-footer">
+						<el-button @click="dialogFormVisibleRoleManager = false">取 消</el-button>
+						<el-button type="primary" @click="addUserRole()">确 定</el-button>
+					</span>
+				</el-dialog>
+			</div>
+			<div class="top-bar">
+				<img src="./assets/编组 2.png">
+				<img src="./assets/矩形备份 5.png">
+				<div class="title">项 目 实 战 管 理 系 统</div>
+				<el-menu mode="horizontal" background-color="#096DD9" text-color="#ffffff" active-text-color="#ffd04b">
+					<div v-for="menuItem in menuTree">
+						<div v-if="menuItem.children && menuItem.children.length > 0">
+							<recursive-menu :menu-item="menuItem" :key="menuItem.menuId"></recursive-menu>
+						</div>
+						<div v-else>
+							<el-menu-item :index="menuItem.menuId+''" :key="menuItem.menuId"
+								>{{ menuItem.menuName }}</el-menu-item>
+						</div>
+					</div>
+				</el-menu>
+			</div>
+			<div class="menu">
+				<!-- 父组件 -->
+				<el-tabs v-model="activeTab">
+					<el-tab-pane v-for="tab in tabs" :label="tab.label" :name="tab.name" :key="tab.name">
+						<!-- 在每个 el-tab-pane 组件中放置相应的页面内容 -->
+						<div>{{ tab.content}}</div>
+					</el-tab-pane>
+				</el-tabs>
+			</div>
+			<div class="table-container" style="display: flex; justify-content: flex-end;">
+				<input type="text" v-model="keyword" placeholder="请输入用户名"
+					style="width: 100%;margin: 1px;  background-color: #32c5ff;" />
+				<el-button class="set-other-btn" @click="search">查询</el-button>
+				<el-button class="set-other-btn" @click="save()">添加用户</el-button>
+				<el-button type="danger" @click="deleteByUserIds()"
+					:disabled="userSelection.length === 0">批量删除</el-button>
+			</div>
+			<div class="table-container">
+				<el-table size="small" @selection-change="handleSelectionChange" current-row-key="userId" :data="users"
+					stripe highlight-current-row :header-cell-style="{ 
+					background:'#04489B',height:'50px',color:'#ffffff',border: '1px solid tan'}" :cell-style="{ 
+					background:'#045fba',height:'10px',color:'#ffffff',border: '1px solid tan'}">
+					<el-table-column type="selection" align="center"></el-table-column>
+					<el-table-column prop="userId" align="center" label="用户ID"></el-table-column>
+					<el-table-column prop="userName" label="中文名" align="center"></el-table-column>
+					<el-table-column prop="enName" label="英文名" align="center"></el-table-column>
+					<el-table-column prop="age" label="年龄" align="center"></el-table-column>
+					<el-table-column prop="phone" label="联系电话" align="center"></el-table-column>
+					<el-table-column prop="address" label="地址" align="center"></el-table-column>
+					<el-table-column label="操作" align="center">
+						<template slot-scope="scope">
+							<!-- 更新按钮-->
+							<el-button type="primary" size="mini" @click="handleUpdate(scope.row.userId)"
+								icon="el-icon-edit" circle></el-button>
+							<!-- 删除按钮 -->
+							<el-button type="danger" size="mini" @click="showConfirmDialog(scope.row.userId)"
+								icon="el-icon-delete" circle></el-button>
+							<!-- 授权按钮 -->
+							<el-button type="primary" size="mini" @click="handleManageRole(scope.row.userId)"
+								icon="el-icon-setting" circle>授权</el-button>
+
+						</template>
+					</el-table-column>
+				</el-table>
+			</div>
+		</div>
+	</body>
+	<!-- 引入组件库 -->
+	<script src="js/vue.js"></script>
+	<script src="plugins/elementui/index.js"></script>
+	<script src="js/axios-0.18.0.js"></script>
+	<script>
+		Vue.component('recursive-menu', {
+			props: {
+				menuItem: {
+					type: Object,
+					required: true
+				}
+			},
+			methods: {
+				handleClick(menuItem) {
+					// 触发自定义事件并传递 menuItem 数据
+					this.$emit('addTab', menuItem);
+				}
+			},
+			template: 
+			`
+		    <el-menu-item v-if="!menuItem.children" :index="menuItem.menuId + ''" :key="menuItem.menuId" @click="handleClick(menuItem)">
+		      {{ menuItem.menuName }}
+		    </el-menu-item>
+		    <el-submenu v-else :index="menuItem.menuId + ''" :key="menuItem.menuId" @click="handleClick(menuItem)">
+		      <template slot="title">{{ menuItem.menuName }}</template>
+		      <recursive-menu v-for="childItem in menuItem.children" :menu-item="childItem" :key="childItem.menuId"></recursive-menu>
+		    </el-submenu>
+		  `
+		});
+		var vm = new Vue({
+			el: '#app',
+			data: {
+				tabs: [],
+				activeTab: '',
+				editUser: {}, // 编辑时表单数据
+				size: '500px',
+				// 所有角色列表
+				allRoleList: [],
+				menuData: [],
+				menuTree: [],
+				roleList: [],
+				// 选择列表，批量删除
+				userSelection: [],
+				// 添加给用户添加角色展示列表
+				RoleIds: [],
+				roleNames: [],
+				keyword: '', // 用于存储用户输入的关键词
+				users: [], // 存储查询结果
+				dialogFormVisible: false,
+				userForm: {},
+				assignRolesDialogVisible: false, // 授权弹窗的显示状态
+				// 用户角色信息列表
+				userRoleList: [],
+				// 所有角色信息列表
+				dialogFormVisibleRoleManager: false,
+				// 用户和角色数据
+				selectedUserId: null, // 选中的用户ID
+				selectedUserRoles: [], // 用户已有角色列表
+				availableRoles: [], // 可用角色列表
+				selectedRoles: [], // 已选择的角色ID列表
+				rules: {
+					userName: [{
+							required: true,
+							message: '用户中文名不能为空',
+							trigger: 'blur'
+						},
+						{
+							min: 1,
+							max: 19,
+							message: '长度在 1 到 19 个字符',
+							trigger: 'blur'
+						}
+					],
+					enName: [{
+							required: true,
+							message: '英文名不能为空',
+							trigger: 'blur'
+						},
+						{
+							min: 1,
+							max: 30,
+							message: '长度在 1 到 30 个字符',
+							trigger: 'blur'
+						}
+					],
+					age: [{
+							required: true,
+							message: '年龄不能为空',
+							trigger: 'change'
+						},
+						{
+							type: 'number',
+							message: '年龄必须为数字值'
+						}
+					]
+				},
+			},
+			methods: {
+				handleAddTab(menuItem) {
+					// 添加 tab 方法
+					const tab = {
+						label: menuItem.menuName,
+						name: menuItem.menuId + '', // 保证唯一性，需要转成字符串
+						content: menuItem.menuName // 根据菜单项确定相应的页面内容
+					}
+					this.tabs.push(tab);
+					this.activeTab = tab.name; // 将新添加的 tab 设置为激活状态
+				},
+				//查询用户
+				async search() {
+					try {
+						if (this.keyword.trim() === '') {
+							// 查询全部用户
+							await this.loadUserData();
+						} else {
+							// 发起模糊查询请求
+							const response = await axios.get('http://localhost:8080/users/search', {
+								params: {
+									keyword: this.keyword
+								}
+							});
+
+							this.users = response.data; // 更新查询结果
+						}
+					} catch (error) {
+						console.error('Error while fetching data:', error);
+					}
+				},
+				// 添加角色
+				async addUserRole() {
+					const selectedRoleIds = this.userRoleList.map(roleName => {
+						// 根据 roleName 找到对应的 role
+						const role = this.roleNames.find(role => role.roleName === roleName);
+						// 返回 role 的 roleId
+						return role.roleId;
+					});
+					const roleIdsQueryParam = selectedRoleIds.join(',');
+
+					const userIdQueryParam = this.nowUserId;
+					console.log(roleIdsQueryParam)
+					// 构造请求的数据
+					const url =
+						`http://localhost:8080/users/assignRoles?userId=${userIdQueryParam}&roleIds=${roleIdsQueryParam}`;
+
+					try {
+						// 发送 POST 请求
+						const response = await axios.get(url);
+
+						if (response.status === 200) {
+							console.log('授权成功');
+							this.$confirm('授权成功！');
+							this.dialogFormVisibleRoleManager = false;
+						} else {
+							console.log('授权失败');
+						}
+					} catch (error) {
+						console.log(error);
+					}
+				},
+				// 获取批量删除用户的ID和用户名称
+				handleSelectionChange(selection) {
+					this.userSelection = selection.map(item => {
+						return {
+							userId: item.userId,
+							userName: item.userName
+						};
+					});
+				},
+				// 批量删除用户
+				async deleteByUserIds() {
+					const userIds = this.userSelection.map(item => item.userId);
+					const userNames = this.userSelection.map(item => item.userName);
+					await this.$confirm(
+						`<span>此操作永久删除用户: <span style="color: red">${userNames.join(", ")}</span>，是否继续？</span>`,
+						"提示", {
+							type: 'info',
+							dangerouslyUseHTMLString: true
+						})
+					const response = await axios.delete('http://localhost:8080/users/' + userIds)
+					if (response.status === 200) {
+						this.resetAddForm();
+						await this.loadUserData();
+						this.$message.success('用户删除成功！');
+						console.log('用户删除成功');
+					} else {
+						console.log('用户删除失败');
+					}
+				},
+				// 更新校验
+				submitEditForm(editUserForm) {
+					this.$refs[editUserForm].validate((valid) => {
+						if (valid) {
+							this.updateUser();
+						} else {
+							console.log('验证失败');
+							return false;
+						}
+					});
+				},
+				// 更新用户
+				async updateUser() {
+					try {
+						// 只有当此方法被调用时才发送更新请求
+						const response = await axios.post('http://localhost:8080/users/updateUser', this
+							.editUser);
+						if (response.data != false) {
+							this.assignRolesDialogVisible = false; // 关闭编辑对话框
+							this.loadUserData(); // 重新加载用户数据
+							this.$message.success('用户更新成功！');
+						} else {
+							this.$message.error('用户更新失败，英文名重复');
+						}
+					} catch (error) {
+						this.$message.error('发生异常，请稍后重试');
+						console.error('Error updating user:', error);
+					}
+				},
+				// 更新弹窗
+				async handleUpdate(userId) {
+					const response = await axios.get('http://localhost:8080/users/getUserById/' + userId);
+					if (response.status == 200) {
+						this.editUser = response.data;
+						this.assignRolesDialogVisible = true;
+					} else {
+						console.log("更新错误");
+					}
+
+				},
+				// 删除弹窗
+				showConfirmDialog(userId) {
+					this.$confirm('是否删除该用户?', '提示', {
+						confirmButtonText: '确定',
+						cancelButtonText: '取消',
+						type: 'warning'
+					}).then(() => {
+						// 用户点击了确定按钮，执行删除操作
+						this.handleDelete(userId);
+					}).catch(() => {
+						// 用户点击了取消按钮，不执行删除操作
+					});
+				},
+				resetTransfer() {
+					this.dialogFormVisibleRoleManager = false;
+				},
+				// 获取当前操作用户的角色列表信息
+				async handleManageRole(userId) {
+					try {
+						// 当前用户拥有角色
+						const response = await axios.get('http://localhost:8080/users/' + userId + '/roles');
+						// 所有角色
+						const roleList = await axios.get('http://localhost:8080/roles/getAllRoles/');
+						const roleListArray = Object.values(roleList.data);
+						this.roleNames = roleListArray.map(role => role);
+
+						if (response.status === 200 && roleList.status === 200) {
+							this.userRoleList = response.data; // 用户已有角色列表
+							console.log(this.userRoleList);
+							console.log(this.roleNames);
+							this.nowUserId = userId;
+							this.dialogFormVisibleRoleManager = true;
+						} else {
+							this.$message.error("系统错误！");
+						}
+					} catch (error) {
+						console.error(error);
+						this.$message.error("请求失败，请稍后再试！");
+					}
+				},
+				// 删除用户角色
+				async deleteUserRole(nowUserId, role) {
+					try {
+						const userId = nowUserId;
+						const roleName = role;
+
+						// 弹出确认提示框
+						await this.$confirm(`此操作永久删除用户角色: <span style="color: red">${role}</span>，是否继续？`,
+							"提示", {
+								type: 'info',
+								dangerouslyUseHTMLString: true
+							});
+
+						// 发送DELETE请求到后端API来执行删除用户角色的逻辑
+						const response = await axios.delete(`http://localhost:8080/role/${userId}/${roleName}`);
+						console.log(response.data);
+						// 删除成功后更新用户角色列表
+						this.userRoleList = this.userRoleList.filter(r => r !== role);
+					} catch (error) {
+						// 错误处理逻辑
+						console.error(error);
+					}
+				},
+
+				//删除用户
+				async handleDelete(userId) {
+					try {
+						const response = await axios.delete('http://localhost:8080/users/' + userId);
+
+						// 根据后端接口返回的数据进行处理
+
+						if (response != null) {
+
+							this.$message.success('用户删除成功！');
+							await this.loadUserData();
+							// 更新用户列表或重新加载数据
+
+						} else {
+							this.$message.error('用户删除失败，请重试。');
+						}
+					} catch (error) {
+						console.error('Error deleting user:', error);
+						this.$message.error('发生错误，请稍后重试。');
+					}
+
+				},
+				//添加用户
+				async userAdd() {
+
+					// 发送POST请求添加用户
+					const response = await axios.post('http://localhost:8080/users/addUser', this.userForm);
+
+					// 根据后端返回的结果做出相应处理
+					if (response.data == 2) {
+						this.$message.success('用户添加成功');
+						this.dialogFormVisible = false;
+
+						// 重新加载用户数据，更新表格
+						await this.loadUserData();
+
+						// 重置表单
+						// this.$refs.AddsubmitForm.resetFields();
+					} else if (response.data == 1) {
+						this.$message.error('英文名重复，用户添加失败');
+					}
+
+				},
+				// 新增弹窗
+				save() {
+					this.dialogFormVisible = true;
+					this.resetAddForm();
+				},
+				// 用户新增校验
+				AddsubmitForm(AddUserForm) {
+					this.$refs[AddUserForm].validate((valid) => {
+						if (valid) {
+							this.userAdd();
+						} else {
+							this.$message.error("添加失败");
+							return false;
+						}
+					});
+				},
+				resetForm(AddUserForm) {
+					this.$refs[AddUserForm].resetFields();
+				},
+				// 新增完毕后重置用户新增表单
+				resetAddForm() {
+					this.userForm = {};
+					this.editUser = {};
+				},
+				async loadUserData() {
+					// 发起 AJAX 请求获取用户数据
+					try {
+						const response = await axios.get('http://localhost:8080/users/getALLUser');
+						this.users = response.data; // 更新用户数据
+					} catch (error) {
+						console.error('Error loading user data:', error);
+					}
+				},
+				buildMenuTree(menuList, parentId = null) {
+					const tree = [];
+					for (const menu of menuList) {
+						if (menu.parentId === parentId) {
+							const children = this.buildMenuTree(menuList, menu.menuId);
+							if (children.length > 0) {
+								menu.children = children;
+							}
+							tree.push(menu);
+						}
+					}
+					return tree;
+				},
+				async loadMenuData() {
+					// 发起 AJAX 请求获取菜单数据
+					try {
+						const response = await axios.get('http://localhost:8080/menus/getAllMenus');
+						this.menuData = response.data; // 拿到菜单数据
+						const menuTree = this.buildMenuTree(this.menuData);
+						this.menuTree = menuTree;
+						console.log(this.menuTree)
+					} catch (error) {
+						console.error('Error loading user data:', error);
+					}
+				}
+			},
+			mounted() {
+				// 页面加载时加载用户数据
+				this.loadUserData();
+				this.loadMenuData();
+				this.$on('addTab', this.handleAddTab);
+			}
+		});
+	</script>
+
+</html>
